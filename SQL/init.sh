@@ -1,31 +1,35 @@
 #!/bin/bash
 set -e
 
-echo "Waiting for Oracle to be ready..."
-until echo "SELECT 1 FROM DUAL;" | sqlplus -s SYS/${ORACLE_PWD}@XE > /dev/null 2>&1; do
-  sleep 5
+# Create a log file
+LOGFILE=/tmp/init-script.log
+echo "===== Init script started at $(date) =====" > $LOGFILE
+
+echo "Waiting for Oracle to be ready..." | tee -a $LOGFILE
+for i in {1..30}; do
+  if echo "SELECT 1 FROM DUAL;" | sqlplus -s system/${ORACLE_PWD}@XE >/dev/null 2>&1; then
+    echo "Oracle is ready!" | tee -a $LOGFILE
+    break
+  fi
+  echo "Attempt $i: Oracle not ready yet, waiting..." | tee -a $LOGFILE
+  sleep 10
 done
 
-echo "Creating database users..."
-
-sqlplus -s SYS/${ORACLE_PWD}@XE <<EOF
--- Create users
+echo "Creating database users..." | tee -a $LOGFILE
+sqlplus system/${ORACLE_PWD}@XE >> $LOGFILE 2>&1 <<EOF
 CREATE USER java_user IDENTIFIED BY ${LOGIN_DB_PASSWORD};
 CREATE USER csc_cocktails IDENTIFIED BY ${APP_DB_PASSWORD};
-
--- Grant privileges
 GRANT CONNECT, RESOURCE, CREATE SESSION TO java_user;
 GRANT CONNECT, RESOURCE, CREATE SESSION TO csc_cocktails;
 GRANT UNLIMITED TABLESPACE TO java_user;
 GRANT UNLIMITED TABLESPACE TO csc_cocktails;
 GRANT CREATE TABLE TO java_user;
 GRANT CREATE TABLE TO csc_cocktails;
-
 EXIT;
 EOF
 
-echo "Running schema setup scripts..."
-sqlplus -s java_user/${LOGIN_DB_PASSWORD}@XE @/docker-entrypoint-initdb.d/01-login-schema.sql
-sqlplus -s csc_cocktails/${APP_DB_PASSWORD}@XE @/docker-entrypoint-initdb.d/02-app-schema.sql
+echo "Running schema setup scripts..." | tee -a $LOGFILE
+sqlplus java_user/${LOGIN_DB_PASSWORD}@XE @/docker-entrypoint-initdb.d/01-login-schema.sql >> $LOGFILE 2>&1
+sqlplus csc_cocktails/${APP_DB_PASSWORD}@XE @/docker-entrypoint-initdb.d/02-app-schema.sql >> $LOGFILE 2>&1
 
-echo "Database initialization complete!"
+echo "===== Database initialization complete at $(date) =====" | tee -a $LOGFILE
