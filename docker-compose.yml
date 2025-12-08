@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   oracle-db:
-    build: .
+    build: SQL
     container_name: cocktails-oracle-db
     ports:
       - "1521:1521"
