@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  oracle-db:
+    build: .
+    container_name: cocktails-oracle-db
+    ports:
+      - "1521:1521"
+      - "5500:5500"
+    environment:
+      - ORACLE_PWD=${DB_SYSTEM_PASSWORD}
+      - LOGIN_DB_PASSWORD=${LOGIN_DB_PASSWORD}
+      - APP_DB_PASSWORD=${APP_DB_PASSWORD}
+    volumes:
+      - oracle-data:/opt/oracle/oradata
+    healthcheck:
+      test: ["CMD-SHELL", "echo 'SELECT 1 FROM DUAL;' | sqlplus -s system/${DB_SYSTEM_PASSWORD}@//localhost:1521/XE"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+volumes:
+  oracle-data:
