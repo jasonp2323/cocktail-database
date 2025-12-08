@@ -7,7 +7,7 @@ echo "===== Init script started at $(date) =====" > $LOGFILE
 
 echo "Waiting for Oracle to be ready..." | tee -a $LOGFILE
 for i in {1..30}; do
-  if echo "SELECT 1 FROM DUAL;" | sqlplus -s system/${ORACLE_PWD}@XE >/dev/null 2>&1; then
+  if echo "SELECT 1 FROM DUAL;" | sqlplus system/${ORACLE_PWD}@XE >/dev/null 2>&1; then
     echo "Oracle is ready!" | tee -a $LOGFILE
     break
   fi
